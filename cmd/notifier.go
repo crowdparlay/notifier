@@ -1,17 +1,27 @@
 package main
 
 import (
-	"encoding/json"
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
+	"net/http"
+	"notifier/internal"
+	"os"
 )
 
-type Notification struct {
-	UserId int `json:"userId"`
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool {
+		return true
+	},
 }
 
 func main() {
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	url := os.Getenv("AMQP_CONNECTIONURL")
+	if url == "" {
+		url = "amqp://guest:guest@localhost:5672/"
+	}
+	conn, err := amqp.Dial(url)
 	if err != nil {
 		log.Fatalf("Error while connecting to AMQP: %s", err)
 	}
@@ -39,23 +49,14 @@ func main() {
 
 	log.Println("Connected to channel")
 
-	loop := make(chan bool)
+	router := gin.Default()
 
-	go func() {
-		for notification := range notifications {
-			log.Printf("Get message: %s \n", notification.Body)
+	router.GET("/notifications", func(c *gin.Context) {
+		internal.ServeWS(c, &upgrader, notifications)
+	})
 
-			var m Notification
-
-			err = json.Unmarshal(notification.Body, &m)
-
-			if err != nil {
-				log.Fatalf("Fucked up: %s", err)
-			}
-
-			log.Printf("JSON: %+v", m)
-		}
-	}()
-
-	<-loop
+	err = router.Run(":8000")
+	if err != nil {
+		log.Fatalf("Error: %s", err)
+	}
 }
