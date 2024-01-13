@@ -46,7 +46,7 @@ func main() {
 	defer cancel()
 
 	body := Notification{
-		UserId: 1,
+		UserId: 2,
 	}
 
 	bytes, _ := json.Marshal(body)

@@ -51,8 +51,8 @@ func main() {
 
 	router := gin.Default()
 
-	router.GET("/notifications", func(c *gin.Context) {
-		internal.ServeWS(c, &upgrader, notifications)
+	router.GET("/notifications/:id", func(c *gin.Context) {
+		internal.ServeWS(c, upgrader, notifications)
 	})
 
 	err = router.Run(":8000")

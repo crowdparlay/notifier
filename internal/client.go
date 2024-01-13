@@ -7,13 +7,22 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type Notification struct {
 	UserId int `json:"userId"`
 }
 
-func ServeWS(c *gin.Context, upgrader *websocket.Upgrader, notifications <-chan amqp091.Delivery) {
+func ServeWS(c *gin.Context, upgrader websocket.Upgrader, notifications <-chan amqp091.Delivery) {
+	id, err := strconv.Atoi(c.Param("id"))
+	log.Printf("hello %d", id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Provide ID, which you want to listen",
+		})
+		return
+	}
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 
 	if err != nil {
@@ -29,17 +38,19 @@ func ServeWS(c *gin.Context, upgrader *websocket.Upgrader, notifications <-chan 
 	for notification := range notifications {
 		log.Printf("Get message: %s \n", notification.Body)
 
-		var m Notification
+		var n Notification
 
-		err = json.Unmarshal(notification.Body, &m)
+		err = json.Unmarshal(notification.Body, &n)
 
 		if err != nil {
 			log.Fatalf("Fucked up: %s", err)
 		}
 
-		err := conn.WriteJSON(m)
-		if err != nil {
-			log.Printf("Error: %s", err)
+		if id == n.UserId {
+			err := conn.WriteJSON(n)
+			if err != nil {
+				log.Printf("Error: %s", err)
+			}
 		}
 	}
 }
