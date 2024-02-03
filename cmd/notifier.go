@@ -17,10 +17,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func main() {
-	url := os.Getenv("AMQP_CONNECTIONURL")
-	if url == "" {
-		url = "amqp://guest:guest@localhost:5672/"
-	}
+	url := os.Getenv("AMQP_CONNECTION_URL")
 	conn, err := amqp.Dial(url)
 	if err != nil {
 		log.Fatalf("Error while connecting to AMQP: %s", err)

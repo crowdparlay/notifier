@@ -7,17 +7,15 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 	"log"
 	"net/http"
-	"strconv"
 )
 
 type Notification struct {
-	UserId int `json:"userId"`
+	UserId string `json:"userId"`
 }
 
 func ServeWS(c *gin.Context, upgrader websocket.Upgrader, notifications <-chan amqp091.Delivery) {
-	id, err := strconv.Atoi(c.Param("id"))
-	log.Printf("hello %d", id)
-	if err != nil {
+	id, ok := AuthorizeJWT(c)
+	if !ok {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": "Provide ID, which you want to listen",
 		})
